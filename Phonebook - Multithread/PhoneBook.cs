@@ -1,4 +1,6 @@
-﻿namespace PhonebookMultithread
+﻿using System.Collections.Concurrent;
+
+namespace PhonebookMultithread
 {
     public interface IPhoneBook
     {
@@ -7,7 +9,7 @@
         bool ContainsValue(string number);
         int Count();
         string Get(string name);
-        Dictionary<string, string> GetEntries();
+        IDictionary<string, string> GetEntries();
         void RemoveByName(string name);
         void RemoveByNumber(string number);
         void Update(string name, string newNumber);
@@ -15,24 +17,24 @@
 
     public class PhoneBook : IPhoneBook
     {
-
-        private Dictionary<string, string> _entries;
-
+        private ConcurrentDictionary<string, string> _entries;
         private readonly IPhoneBookFileService _phoneBookService;
 
         public PhoneBook(IPhoneBookFileService service)
         {
             _phoneBookService = service;
-            _entries = _phoneBookService.GetEntries();
+            var entries = _phoneBookService.GetEntries();
+            _entries = new ConcurrentDictionary<string, string>(entries);
         }
 
         public void Add(string name, string number)
         {
-            lock (_entries)
+            if (number.Length == 11)
             {
-                if (number.Length == 11)
+                var success = _entries.TryAdd(name, number);
+
+                if (success)
                 {
-                    _entries.Add(name, number);
                     _phoneBookService.Write(_entries);
                 }
                 else
@@ -59,66 +61,60 @@
 
         public void RemoveByName(string name)
         {
-            if (_entries.ContainsKey(name))
+            lock (_entries)
             {
-                _entries.Remove(name);
-                _phoneBookService.Write(_entries);
-            }
-            else
-            {
-                throw new ArgumentException($"{name} does not exist in the phonebook");
+                if (_entries.ContainsKey(name))
+                {
+                    _entries.Remove(name, out _);
+                    _phoneBookService.Write(_entries);
+                }
+                else
+                {
+                    throw new ArgumentException($"{name} does not exist in the phonebook");
+                }
             }
         }
 
-        public Dictionary<string, string> GetEntries()
+        public IDictionary<string, string> GetEntries()
         {
-            lock (_entries)
-            {
-                return _entries;
-            }
+            return new ConcurrentDictionary<string, string>(_entries);
         }
 
         public void RemoveByNumber(string number)
         {
-            lock (_entries)
+
+            var keys = _entries.Keys;
+            var deleteSuccess = false;
+            foreach (var key in keys)
             {
-                var keys = _entries.Keys;
-                var deleteSuccess = false;
-                foreach (var key in keys)
+                if (_entries[key] == number)
                 {
-                    if (_entries[key] == number)
+                    deleteSuccess = _entries.Remove(key, out _);
+                    if (deleteSuccess)
                     {
-                        _entries.Remove(key);
                         _phoneBookService.Write(_entries);
-                        deleteSuccess = true;
-                        break;
                     }
+                    break;
                 }
-                if (!deleteSuccess)
-                {
-                    throw new ArgumentException($"{number} does not exist in phonebook");
-                }
+            }
+            if (!deleteSuccess)
+            {
+                throw new ArgumentException($"{number} does not exist in phonebook");
             }
         }
 
         public void Update(string name, string newNumber)
         {
-            lock (_entries)
+            if (_entries.ContainsKey(name))
             {
-                if (_entries.ContainsKey(name))
-                {
-                    _entries[name] = newNumber;
-                }
+                _entries[name] = newNumber;
             }
         }
 
         public void Clear()
         {
-            lock (_entries)
-            {
-                _entries = new Dictionary<string, string>();
-                _phoneBookService.Clear();
-            }
+            _entries.Clear();
+            _phoneBookService.Clear();
         }
 
         public int Count()
@@ -130,7 +126,7 @@
         {
             lock (_entries)
             {
-                return _entries.ContainsValue(number);
+                return _entries.Values.Contains(number);
             }
         }
     }

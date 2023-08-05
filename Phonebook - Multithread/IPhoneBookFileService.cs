@@ -4,6 +4,6 @@
     {
         void Clear();
         Dictionary<string, string> GetEntries();
-        void Write(Dictionary<string, string> entries);
+        void Write(IDictionary<string, string> entries);
     }
 }

@@ -35,7 +35,7 @@
 
         }
 
-        public void Write(Dictionary<string, string> entries)
+        public void Write(IDictionary<string, string> entries)
         {
             var entityWriteData = entries.Select(entry => $"{entry.Key} {entry.Value}").ToArray();
             File.WriteAllLines(path, entityWriteData);
