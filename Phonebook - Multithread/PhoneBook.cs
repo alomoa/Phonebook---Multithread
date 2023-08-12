@@ -29,6 +29,8 @@ namespace PhonebookMultithread
 
         public void Add(string name, string number)
         {
+            lock (_entries)
+            {
             if (number.Length == 11)
             {
                 var success = _entries.TryAdd(name, number);
@@ -82,7 +84,8 @@ namespace PhonebookMultithread
 
         public void RemoveByNumber(string number)
         {
-
+            lock (_entries)
+            {
             var keys = _entries.Keys;
             var deleteSuccess = false;
             foreach (var key in keys)
@@ -102,19 +105,27 @@ namespace PhonebookMultithread
                 throw new ArgumentException($"{number} does not exist in phonebook");
             }
         }
+        }
 
         public void Update(string name, string newNumber)
         {
+            lock (_entries)
+            {
             if (_entries.ContainsKey(name))
             {
                 _entries[name] = newNumber;
+                    _phoneBookService.Write(_entries);
+                }
             }
         }
 
         public void Clear()
         {
+            lock (_entries)
+            {
             _entries.Clear();
             _phoneBookService.Clear();
+        }
         }
 
         public int Count()
