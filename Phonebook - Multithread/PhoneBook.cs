@@ -31,13 +31,19 @@ namespace PhonebookMultithread
         {
             lock (_entries)
             {
-            if (number.Length == 11)
-            {
-                var success = _entries.TryAdd(name, number);
-
-                if (success)
+                if (number.Length == 11)
                 {
-                    _phoneBookService.Write(_entries);
+                    var success = _entries.TryAdd(name, number);
+
+                    if (success)
+                    {
+                        _phoneBookService.Write(_entries);
+                    }
+                    else
+                    {
+                        throw new OperationCanceledException("Name already exists");
+                    }
+                    
                 }
                 else
                 {
@@ -86,34 +92,34 @@ namespace PhonebookMultithread
         {
             lock (_entries)
             {
-            var keys = _entries.Keys;
-            var deleteSuccess = false;
-            foreach (var key in keys)
-            {
-                if (_entries[key] == number)
+                var keys = _entries.Keys;
+                var deleteSuccess = false;
+                foreach (var key in keys)
                 {
-                    deleteSuccess = _entries.Remove(key, out _);
-                    if (deleteSuccess)
+                    if (_entries[key] == number)
                     {
-                        _phoneBookService.Write(_entries);
+                        deleteSuccess = _entries.Remove(key, out _);
+                        if (deleteSuccess)
+                        {
+                            _phoneBookService.Write(_entries);
+                        }
+                        break;
                     }
-                    break;
+                }
+                if (!deleteSuccess)
+                {
+                    throw new ArgumentException($"{number} does not exist in phonebook");
                 }
             }
-            if (!deleteSuccess)
-            {
-                throw new ArgumentException($"{number} does not exist in phonebook");
-            }
-        }
         }
 
         public void Update(string name, string newNumber)
         {
             lock (_entries)
             {
-            if (_entries.ContainsKey(name))
-            {
-                _entries[name] = newNumber;
+                if (_entries.ContainsKey(name))
+                {
+                    _entries[name] = newNumber;
                     _phoneBookService.Write(_entries);
                 }
             }
@@ -123,9 +129,9 @@ namespace PhonebookMultithread
         {
             lock (_entries)
             {
-            _entries.Clear();
-            _phoneBookService.Clear();
-        }
+                _entries.Clear();
+                _phoneBookService.Clear();
+            }
         }
 
         public int Count()
