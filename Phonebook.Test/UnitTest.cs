@@ -42,11 +42,11 @@ namespace Phonebook.Test
 
             //Act
             phonebook.Add(name, number);
-
+            var phonebookDictionary = phonebook.GetEntries();
             //Assert
+            Assert.That(phonebookDictionary, Contains.Key(name));
+            Assert.That(phonebookDictionary, Contains.Value(number));
             mockService.Verify(m => m.Write(phonebook.GetEntries()), Times.Once);
-            //Check that steve is added to the dictionary
-            //replace the arg in write with It
         }
 
         [Test]
@@ -99,9 +99,12 @@ namespace Phonebook.Test
         [Test]
         public void DeletesEntryFromPhoneBookByNumber()
         {
+            Mock<PhoneBook> phonebookMock = new Mock<PhoneBook>(mockService.Object);
             //Arrange
             var name = "Lenny";
             var number = "07856647222";
+            phonebookMock.Setup(m => m.FindKeyByValue(number)).Returns(name);
+            phonebook = phonebookMock.Object;
 
             //Act
             phonebook.Add(name, number);
@@ -151,12 +154,41 @@ namespace Phonebook.Test
             var number = "07856647222";
             var newNumber = "07634253642";
 
+
             //Act
             phonebook.Add(name, number);
             phonebook.Update(name, newNumber);
 
             //Assert
             Assert.That(phonebook.Get(name), Is.EqualTo(newNumber));
+        }
+
+        [Test]
+        public void RetrievesKeyUsingValue()
+        {
+            //Arrange
+            var name = "dave";
+            var number = "07567642122";
+
+            //Act
+            phonebook.Add(name, number);
+            var key = phonebook.FindKeyByValue(number);
+
+            //Assert
+            Assert.That(key, Is.EqualTo(name));
+        }
+
+        [Test]
+        public void DoesNotRetrieveKeyUsingValue()
+        {
+            //Arrange
+            var number = "07567642122";
+
+            //Act
+            var key = phonebook.FindKeyByValue(number);
+
+            //Assert
+            Assert.That(String.IsNullOrEmpty(key), Is.EqualTo(true));
         }
     }
 }

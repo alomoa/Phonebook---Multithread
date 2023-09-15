@@ -97,7 +97,7 @@ namespace PhonebookMultithread
             }
         }
 
-        public string FindKeyByValue(string value)
+        public virtual string FindKeyByValue(string value)
         {
             var result = "";
             var keys = _entries.Keys;

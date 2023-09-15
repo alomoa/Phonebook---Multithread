@@ -13,8 +13,8 @@
         {
             lock (lockObject)
             {
-            File.Delete(path);
-        }
+                File.Delete(path);
+            }
         }
 
         public Dictionary<string, string> GetEntries()
@@ -49,8 +49,8 @@
             var entityWriteData = entries.Select(entry => $"{entry.Key} {entry.Value}").ToArray();
             lock(lockObject)
             {
-            File.WriteAllLines(path, entityWriteData);
+                File.WriteAllLines(path, entityWriteData);
+            }
         }
     }
-}
 }
