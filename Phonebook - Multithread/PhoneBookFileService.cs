@@ -3,6 +3,7 @@
     public class PhoneBookFileService : IPhoneBookFileService
     {
         private readonly string path = Path.Combine(Environment.CurrentDirectory, "phonebook.txt");
+        private object lockObject;
         public PhoneBookFileService()
         {
 
@@ -10,14 +11,22 @@
 
         public void Clear()
         {
+            lock (lockObject)
+            {
             File.Delete(path);
+        }
         }
 
         public Dictionary<string, string> GetEntries()
         {
             try
             {
-                var entries = File.ReadAllLines(path);
+                string[] entries;
+                lock(lockObject)
+                {
+                    entries = File.ReadAllLines(path);
+                }
+                
                 Dictionary<string, string> entriesDict = new Dictionary<string, string>();
 
                 foreach (var entry in entries)
@@ -38,7 +47,10 @@
         public void Write(IDictionary<string, string> entries)
         {
             var entityWriteData = entries.Select(entry => $"{entry.Key} {entry.Value}").ToArray();
+            lock(lockObject)
+            {
             File.WriteAllLines(path, entityWriteData);
         }
     }
+}
 }
