@@ -53,10 +53,11 @@ namespace PhonebookMultithread
 
         public string Get(string name)
         {
-
-            if (_entries.ContainsKey(name))
+            string? result;
+            var success = _entries.TryGetValue(name, out result);
+            if (success)
             {
-                return _entries[name];
+                return result;
             }
             else
             {
@@ -67,17 +68,11 @@ namespace PhonebookMultithread
 
         public void RemoveByName(string name)
         {
-
-            if (_entries.ContainsKey(name))
-            {
-                _entries.Remove(name, out _);
-                _phoneBookService.Write(_entries);
-            }
-            else
+            var success = _entries.TryRemove(name, out _);
+            if (success == false)
             {
                 throw new ArgumentException($"{name} does not exist in the phonebook");
             }
-
         }
 
         public IDictionary<string, string> GetEntries()
@@ -87,37 +82,57 @@ namespace PhonebookMultithread
 
         public void RemoveByNumber(string number)
         {
+            var foundKey = FindKeyByValue(number);
+            if (!String.IsNullOrEmpty(foundKey))
+            {
+                var deleteSuccess = _entries.TryRemove(foundKey, out _);
+                if (deleteSuccess)
+                {
+                    _phoneBookService.Write(_entries);
+                }
+                else
+                {
+                    throw new ArgumentException($"{number} does not exist in phonebook");
+                }
+            }
+        }
 
+        public string FindKeyByValue(string value)
+        {
+            var result = "";
             var keys = _entries.Keys;
-            var deleteSuccess = false;
+
             foreach (var key in keys)
             {
-                if (_entries[key] == number)
+                var success = _entries.TryGetValue(key, out var stringValue);
+
+                if (success && stringValue == value)
                 {
-                    deleteSuccess = _entries.Remove(key, out _);
-                    if (deleteSuccess)
-                    {
-                        _phoneBookService.Write(_entries);
-                    }
+                    result = key;
                     break;
                 }
             }
-            if (!deleteSuccess)
-            {
-                throw new ArgumentException($"{number} does not exist in phonebook");
-            }
 
+            return result;
         }
 
         public void Update(string name, string newNumber)
         {
+            var valueSuccess = _entries.TryGetValue(name, out var currentValue);
 
-            if (_entries.ContainsKey(name))
+            if(valueSuccess)
             {
-                _entries[name] = newNumber;
-                _phoneBookService.Write(_entries);
-            }
+                var updateSuccess = _entries.TryUpdate(name, newNumber, currentValue);
 
+                if (updateSuccess)
+                {
+                    _phoneBookService.Write(_entries);
+                }
+                else 
+                {
+                    throw new ArgumentException($"Failed to update {name}");
+                }
+            }
         }
 
         public void Clear()
@@ -135,7 +150,6 @@ namespace PhonebookMultithread
 
         public bool ContainsValue(string number)
         {
-
             return _entries.Values.Contains(number);
 
         }
